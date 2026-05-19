@@ -104,4 +104,15 @@ class AuthenticationInterceptorTest {
                 .body("time.id", is(1))
                 .body("theme.id", is(1));
     }
+
+    @Test
+    void 로그인하지_않으면_내_예약을_조회할_수_없다() {
+        RestAssured.given().log().all()
+                .when().get("/reservations/mine")
+                .then().log().all()
+                .statusCode(401)
+                .body("code", is("UNAUTHORIZED"))
+                .body("message", is("로그인이 필요합니다."));
+    }
+
 }
