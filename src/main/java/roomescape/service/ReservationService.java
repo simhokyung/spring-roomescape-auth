@@ -1,6 +1,7 @@
 package roomescape.service;
 
 import org.springframework.stereotype.Service;
+import roomescape.auth.LoginMember;
 import roomescape.dao.ReservationDao;
 import roomescape.dao.ReservationTimeDao;
 import roomescape.dao.ThemeDao;
@@ -52,6 +53,28 @@ public class ReservationService {
             throw new PastReservationException("지난 예약은 취소할 수 없습니다.");
         }
         reservationDao.deleteById(id);
+    }
+
+    public Reservation save(LoginMember loginMember, LocalDate date, Long timeId, Long themeId) {
+        Member member = new Member(
+                loginMember.id(),
+                loginMember.name(),
+                loginMember.email(),
+                "password"
+        );
+
+        return save(member, date, timeId, themeId);
+    }
+
+    public Reservation save(String name, LocalDate date, Long timeId, Long themeId) {
+        Member member = new Member(
+                null,
+                name,
+                name + "@reservation.local",
+                "password"
+        );
+
+        return save(member, date, timeId, themeId);
     }
 
     public Reservation save(Member member, LocalDate date, Long timeId, Long themeId) {

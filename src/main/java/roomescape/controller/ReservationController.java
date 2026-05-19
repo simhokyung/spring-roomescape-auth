@@ -50,7 +50,7 @@ public class ReservationController {
             @Valid @RequestBody ReservationRequest reservationRequest
     ) {
         Reservation reservation = reservationService.save(
-                loginMember.name(),
+                loginMember,
                 reservationRequest.date(),
                 reservationRequest.timeId(),
                 reservationRequest.themeId()
