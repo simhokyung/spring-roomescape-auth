@@ -82,4 +82,16 @@ public class ReservationController {
         );
         return ReservationResponse.from(reservation);
     }
+
+    @GetMapping("/reservations/mine")
+    public ReservationResponses readMine(
+            @AuthenticationPrincipal LoginMember loginMember,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+    ) {
+        return ReservationResponses.from(
+                reservationService.find(loginMember.name(), page, size)
+        );
+    }
+
 }
