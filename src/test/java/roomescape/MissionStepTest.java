@@ -263,10 +263,8 @@ public class MissionStepTest {
     }
 
     @Test
-    void 빈_이름으로_예약을_생성하면_실패한다() {
+    void 예약_날짜가_없으면_예약_생성에_실패한다() {
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "");
-        params.put("date", "2030-05-05");
         params.put("timeId", 1);
         params.put("themeId", 1);
 
@@ -277,7 +275,7 @@ public class MissionStepTest {
                 .then().log().all()
                 .statusCode(400)
                 .body("code", is("INVALID_INPUT"))
-                .body("message", is("예약자 이름은 필수입니다."));
+                .body("message", is("예약 날짜는 필수입니다."));
     }
 
     @Test

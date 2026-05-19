@@ -86,7 +86,6 @@ class AuthenticationInterceptorTest {
                 .cookie("JSESSIONID");
 
         Map<String, Object> reservationRequest = Map.of(
-                "name", "other",
                 "date", "2030-08-05",
                 "timeId", 1,
                 "themeId", 1
@@ -103,6 +102,39 @@ class AuthenticationInterceptorTest {
                 .body("date", is("2030-08-05"))
                 .body("time.id", is(1))
                 .body("theme.id", is(1));
+    }
+
+    @Test
+    void 요청_name이_있어도_로그인_사용자로_예약을_생성한다() {
+        Map<String, String> loginRequest = Map.of(
+                "email", "brown@example.com",
+                "password", "password"
+        );
+
+        String sessionId = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
+
+        Map<String, Object> reservationRequest = Map.of(
+                "name", "other",
+                "date", "2030-08-06",
+                "timeId", 1,
+                "themeId", 1
+        );
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .contentType(ContentType.JSON)
+                .body(reservationRequest)
+                .when().post("/reservations")
+                .then().log().all()
+                .statusCode(201)
+                .body("name", is("brown"));
     }
 
     @Test
