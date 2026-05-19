@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import roomescape.dto.ErrorResponse;
+import roomescape.exception.AuthenticationException;
 import roomescape.exception.DuplicateResourceException;
 import roomescape.exception.InvalidInputException;
 import roomescape.exception.NotFoundException;
@@ -106,5 +107,11 @@ public class GlobalExceptionHandler {
                         "INTERNAL_SERVER_ERROR",
                         "예상하지 못한 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
                 ));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("AUTHENTICATION_FAILED", e.getMessage()));
     }
 }
