@@ -66,16 +66,21 @@ public class ReservationController {
 
     @DeleteMapping("/reservations/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void cancel(@PathVariable Long id) {
-        reservationService.cancelById(id);
+    public void cancel(
+            @AuthenticationPrincipal LoginMember loginMember,
+            @PathVariable Long id
+    ) {
+        reservationService.cancelById(loginMember.id(), id);
     }
 
     @PatchMapping("/reservations/{id}")
     public ReservationResponse update(
+            @AuthenticationPrincipal LoginMember loginMember,
             @PathVariable long id,
             @Valid @RequestBody ReservationUpdateRequest request
     ) {
         Reservation reservation = reservationService.updateDateAndTime(
+                loginMember.id(),
                 id,
                 request.date(),
                 request.timeId()

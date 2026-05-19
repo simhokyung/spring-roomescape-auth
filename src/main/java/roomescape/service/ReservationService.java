@@ -10,6 +10,7 @@ import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Theme;
 import roomescape.exception.DuplicateResourceException;
+import roomescape.exception.ForbiddenException;
 import roomescape.exception.InvalidInputException;
 import roomescape.exception.NotFoundException;
 import roomescape.exception.PastReservationException;
@@ -49,13 +50,15 @@ public class ReservationService {
     }
 
     public void cancelById(long id) {
-        Reservation reservation = reservationDao.findById(id)
-                .orElseThrow(() -> new NotFoundException("존재하지 않는 예약입니다."));
-        LocalDateTime now = LocalDateTime.now(clock);
+        Reservation reservation = findReservationById(id);
+        validateCancelable(reservation);
+        reservationDao.deleteById(id);
+    }
 
-        if (reservation.isPast(now)) {
-            throw new PastReservationException("지난 예약은 취소할 수 없습니다.");
-        }
+    public void cancelById(Long memberId, long id) {
+        Reservation reservation = findReservationById(id);
+        validateOwner(reservation, memberId, "본인의 예약만 취소할 수 있습니다.");
+        validateCancelable(reservation);
         reservationDao.deleteById(id);
     }
 
@@ -106,10 +109,21 @@ public class ReservationService {
     }
 
     public Reservation updateDateAndTime(long id, LocalDate date, Long timeId) {
+        Reservation reservation = findReservationById(id);
+        return updateDateAndTime(reservation, date, timeId);
+    }
 
-        Reservation reservation = reservationDao.findById(id)
-                .orElseThrow(() -> new NotFoundException("존재하지 않는 예약입니다."));
+    public Reservation updateDateAndTime(Long memberId, long id, LocalDate date, Long timeId) {
+        Reservation reservation = findReservationById(id);
+        validateOwner(reservation, memberId, "본인의 예약만 변경할 수 있습니다.");
+        return updateDateAndTime(reservation, date, timeId);
+    }
 
+    public void deleteById(Long id) {
+        reservationDao.deleteById(id);
+    }
+
+    private Reservation updateDateAndTime(Reservation reservation, LocalDate date, Long timeId) {
         ReservationTime newTime = reservationTimeDao.findById(timeId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 예약 시간입니다."));
 
@@ -133,11 +147,26 @@ public class ReservationService {
                 updatedReservation.getTimeId()
         );
 
+        return reservationDao.findById(reservation.getId())
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 예약입니다."));
+    }
+
+    private Reservation findReservationById(long id) {
         return reservationDao.findById(id)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 예약입니다."));
     }
 
-    public void deleteById(Long id) {
-        reservationDao.deleteById(id);
+    private void validateOwner(Reservation reservation, Long memberId, String message) {
+        if (!reservation.getMemberId().equals(memberId)) {
+            throw new ForbiddenException(message);
+        }
+    }
+
+    private void validateCancelable(Reservation reservation) {
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        if (reservation.isPast(now)) {
+            throw new PastReservationException("지난 예약은 취소할 수 없습니다.");
+        }
     }
 }

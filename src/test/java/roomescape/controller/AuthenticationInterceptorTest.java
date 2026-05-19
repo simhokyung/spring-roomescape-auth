@@ -186,4 +186,77 @@ class AuthenticationInterceptorTest {
                 .body("reservations.size()", is(1))
                 .body("reservations[0].name", is("brown"));
     }
+
+    @Test
+    void 다른_회원의_예약은_취소할_수_없다() {
+        String brownSessionId = login("brown@example.com");
+        String coneySessionId = login("coney@example.com");
+
+        Integer reservationId = createReservation(brownSessionId, "2030-08-05");
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", coneySessionId)
+                .when().delete("/reservations/" + reservationId)
+                .then().log().all()
+                .statusCode(403)
+                .body("code", is("FORBIDDEN"))
+                .body("message", is("본인의 예약만 취소할 수 있습니다."));
+    }
+
+    @Test
+    void 다른_회원의_예약은_변경할_수_없다() {
+        String brownSessionId = login("brown@example.com");
+        String coneySessionId = login("coney@example.com");
+
+        Integer reservationId = createReservation(brownSessionId, "2030-08-05");
+
+        Map<String, Object> updateRequest = Map.of(
+                "date", "2030-08-06",
+                "timeId", 1
+        );
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", coneySessionId)
+                .contentType(ContentType.JSON)
+                .body(updateRequest)
+                .when().patch("/reservations/" + reservationId)
+                .then().log().all()
+                .statusCode(403)
+                .body("code", is("FORBIDDEN"))
+                .body("message", is("본인의 예약만 변경할 수 있습니다."));
+    }
+
+    private String login(String email) {
+        Map<String, String> loginRequest = Map.of(
+                "email", email,
+                "password", "password"
+        );
+
+        return RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
+    }
+
+    private Integer createReservation(String sessionId, String date) {
+        Map<String, Object> reservationRequest = Map.of(
+                "date", date,
+                "timeId", 1,
+                "themeId", 1
+        );
+
+        return RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .contentType(ContentType.JSON)
+                .body(reservationRequest)
+                .when().post("/reservations")
+                .then().log().all()
+                .statusCode(201)
+                .extract()
+                .path("id");
+    }
 }
