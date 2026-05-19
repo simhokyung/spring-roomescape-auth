@@ -1,3 +1,13 @@
+INSERT INTO member (name, email, password)
+VALUES ('brown', 'brown@example.com', 'password');
+
+INSERT INTO member (name, email, password)
+VALUES ('coney', 'coney@example.com', 'password');
+
+INSERT INTO member (name, email, password)
+VALUES ('sally', 'sally@example.com', 'password');
+
+
 -- 테마 20개 세팅
 INSERT INTO theme (name, description, thumbnail) VALUES ('공포의 숲', '으스스한 숲 속에서 단서를 찾아 탈출하세요.', 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=500&q=80');
 INSERT INTO theme (name, description, thumbnail) VALUES ('비밀의 연구실', '미치광이 과학자의 실험실에서 벗어나야 합니다.', 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=500&q=80');
