@@ -44,6 +44,10 @@ public class ReservationService {
         return reservationDao.findByName(name, page, size);
     }
 
+    public List<Reservation> findMine(Long memberId, int page, int size) {
+        return reservationDao.findByMemberId(memberId, page, size);
+    }
+
     public void cancelById(long id) {
         Reservation reservation = reservationDao.findById(id)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 예약입니다."));

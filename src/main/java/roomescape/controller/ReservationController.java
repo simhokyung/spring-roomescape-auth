@@ -90,7 +90,7 @@ public class ReservationController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         return ReservationResponses.from(
-                reservationService.find(loginMember.name(), page, size)
+                reservationService.findMine(loginMember.id(), page, size)
         );
     }
 
