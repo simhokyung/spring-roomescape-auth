@@ -40,4 +40,40 @@ class AuthenticationInterceptorTest {
                 .then().log().all()
                 .statusCode(200);
     }
+
+    @Test
+    void 로그인하면_예약을_생성할_수_있고_요청_name은_무시된다() {
+        Map<String, String> loginRequest = Map.of(
+                "email", "brown@example.com",
+                "password", "password"
+        );
+
+        String sessionId = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
+
+        Map<String, Object> reservationRequest = Map.of(
+                "name", "other",
+                "date", "2030-08-05",
+                "timeId", 1,
+                "themeId", 1
+        );
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .contentType(ContentType.JSON)
+                .body(reservationRequest)
+                .when().post("/reservations")
+                .then().log().all()
+                .statusCode(201)
+                .body("name", is("brown"))
+                .body("date", is("2030-08-05"))
+                .body("time.id", is(1))
+                .body("theme.id", is(1));
+    }
 }
