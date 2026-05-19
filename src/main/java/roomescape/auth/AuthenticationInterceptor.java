@@ -52,6 +52,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        if (HttpMethod.GET.matches(method) && uri.equals("/reservations/mine")) {
+            return true;
+        }
+
         if (HttpMethod.POST.matches(method) && uri.equals("/reservations")) {
             return true;
         }
