@@ -82,4 +82,40 @@ class AuthControllerTest {
                 .statusCode(400)
                 .body("code", is("INVALID_INPUT"));
     }
+
+    @Test
+    void 로그인하지_않으면_내_정보를_조회할_수_없다() {
+        RestAssured.given().log().all()
+                .when().get("/members/me")
+                .then().log().all()
+                .statusCode(401)
+                .body("code", is("UNAUTHORIZED"))
+                .body("message", is("로그인이 필요합니다."));
+    }
+
+    @Test
+    void 로그인하면_내_정보를_조회할_수_있다() {
+        Map<String, String> request = Map.of(
+                "email", "brown@example.com",
+                "password", "password"
+        );
+
+        String sessionId = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .when().get("/members/me")
+                .then().log().all()
+                .statusCode(200)
+                .body("id", is(1))
+                .body("name", is("brown"))
+                .body("email", is("brown@example.com"));
+    }
 }

@@ -2,10 +2,13 @@ package roomescape.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.auth.AuthenticationPrincipal;
+import roomescape.auth.LoginMember;
 import roomescape.domain.Member;
 import roomescape.dto.MemberCreateRequest;
 import roomescape.dto.MemberResponse;
@@ -30,5 +33,10 @@ public class MemberController {
         );
 
         return MemberResponse.from(member);
+    }
+
+    @GetMapping("/members/me")
+    public LoginMember me(@AuthenticationPrincipal LoginMember loginMember) {
+        return loginMember;
     }
 }
