@@ -115,4 +115,43 @@ class AuthenticationInterceptorTest {
                 .body("message", is("로그인이 필요합니다."));
     }
 
+    @Test
+    void 로그인하면_내_예약을_조회할_수_있다() {
+        Map<String, String> loginRequest = Map.of(
+                "email", "brown@example.com",
+                "password", "password"
+        );
+
+        String sessionId = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
+
+        Map<String, Object> reservationRequest = Map.of(
+                "name", "other",
+                "date", "2030-08-05",
+                "timeId", 1,
+                "themeId", 1
+        );
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .contentType(ContentType.JSON)
+                .body(reservationRequest)
+                .when().post("/reservations")
+                .then().log().all()
+                .statusCode(201);
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .when().get("/reservations/mine")
+                .then().log().all()
+                .statusCode(200)
+                .body("reservations.size()", is(1))
+                .body("reservations[0].name", is("brown"));
+    }
 }
