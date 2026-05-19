@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import roomescape.dao.ReservationDao;
 import roomescape.dao.ReservationTimeDao;
 import roomescape.dao.ThemeDao;
+import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Theme;
@@ -53,7 +54,7 @@ public class ReservationService {
         reservationDao.deleteById(id);
     }
 
-    public Reservation save(String name, LocalDate date, Long timeId, Long themeId) {
+    public Reservation save(Member member, LocalDate date, Long timeId, Long themeId) {
         ReservationTime time = reservationTimeDao.findById(timeId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 예약 시간입니다."));
 
@@ -68,7 +69,7 @@ public class ReservationService {
         }
 
         Reservation reservation = Reservation.create(
-                name,
+                member,
                 date,
                 time,
                 theme,
