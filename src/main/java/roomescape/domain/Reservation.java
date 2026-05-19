@@ -13,7 +13,7 @@ public class Reservation {
     private static final int MAX_NAME_LENGTH = 10;
 
     private final Long id;
-    private final String name;
+    private final Member member;
     private final LocalDate date;
     private final ReservationTime time;
     private final Theme theme;
@@ -22,14 +22,28 @@ public class Reservation {
         validateRequired(name, date, time, theme);
 
         this.id = id;
-        this.theme = theme;
-        this.name = name;
+        this.member = new Member(null, name, name + "@reservation.local", "password");
         this.date = date;
         this.time = time;
+        this.theme = theme;
     }
 
     public Reservation(String name, LocalDate date, ReservationTime time, Theme theme) {
         this(null, name, date, time, theme);
+    }
+
+    public Reservation(Long id, Member member, LocalDate date, ReservationTime time, Theme theme) {
+        validateRequired(member, date, time, theme);
+
+        this.id = id;
+        this.member = member;
+        this.date = date;
+        this.time = time;
+        this.theme = theme;
+    }
+
+    public Reservation(Member member, LocalDate date, ReservationTime time, Theme theme) {
+        this(null, member, date, time, theme);
     }
 
     public static Reservation create(String name, LocalDate date, ReservationTime time, Theme theme, LocalDateTime now) {
@@ -38,6 +52,14 @@ public class Reservation {
         validateCreatableDateTime(date, time, now);
 
         return new Reservation(name, date, time, theme);
+    }
+
+    public static Reservation create(Member member, LocalDate date, ReservationTime time, Theme theme, LocalDateTime now) {
+        validateRequired(member, date, time, theme);
+        validateNow(now);
+        validateCreatableDateTime(date, time, now);
+
+        return new Reservation(member, date, time, theme);
     }
 
     public Reservation updateDateAndTime(LocalDate date, ReservationTime time, LocalDateTime now) {
@@ -51,7 +73,15 @@ public class Reservation {
 
         validateUpdatableDateTime(date, time, now);
 
-        return new Reservation(id, name, date, time, theme);
+        return new Reservation(id, member, date, time, theme);
+    }
+
+    public String getName() {
+        return member.getName();
+    }
+
+    public Long getMemberId() {
+        return member.getId();
     }
 
     public Long getTimeId() {
@@ -68,6 +98,13 @@ public class Reservation {
 
     private static void validateRequired(String name, LocalDate date, ReservationTime time, Theme theme) {
         validateName(name);
+        validateDate(date);
+        validateTime(time);
+        validateTheme(theme);
+    }
+
+    private static void validateRequired(Member member, LocalDate date, ReservationTime time, Theme theme) {
+        validateMember(member);
         validateDate(date);
         validateTime(time);
         validateTheme(theme);
@@ -92,6 +129,12 @@ public class Reservation {
 
         if (name.length() < MIN_NAME_LENGTH || name.length() > MAX_NAME_LENGTH) {
             throw new InvalidInputException("이름 형식은 " + MIN_NAME_LENGTH + "글자 이상 " + MAX_NAME_LENGTH + "글자 이하입니다.");
+        }
+    }
+
+    private static void validateMember(Member member) {
+        if (member == null) {
+            throw new InvalidInputException("예약 회원은 필수입니다.");
         }
     }
 
