@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.restassured.RestAssured;
+import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.http.ContentType;
 
 import java.lang.reflect.Field;
@@ -13,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,31 @@ public class MissionStepTest {
                 .when().post("/admin/themes")
                 .then().log().all()
                 .statusCode(201);
+
+        RestAssured.requestSpecification = new RequestSpecBuilder()
+                .addCookie("JSESSIONID", login())
+                .build();
+    }
+
+    @AfterEach
+    void resetRestAssured() {
+        RestAssured.reset();
+    }
+
+    private String login() {
+        Map<String, String> loginRequest = Map.of(
+                "email", "brown@example.com",
+                "password", "password"
+        );
+
+        return RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
     }
 
     // 1단계
@@ -458,11 +485,11 @@ public class MissionStepTest {
                 .statusCode(201);
 
         RestAssured.given().log().all()
-                .when().get("/reservations?name=브라운")
+                .when().get("/reservations?name=brown")
                 .then().log().all()
                 .statusCode(200)
                 .body("reservations.size()", is(1))
-                .body("reservations[0].name", is("브라운"));
+                .body("reservations[0].name", is("brown"));
     }
 
     @Test
@@ -549,7 +576,7 @@ public class MissionStepTest {
                 .then().log().all()
                 .statusCode(200)
                 .body("id", is(reservationId))
-                .body("name", is("브라운"))
+                .body("name", is("brown"))
                 .body("date", is("2030-08-06"))
                 .body("time.id", is(1))
                 .body("theme.id", is(1));
@@ -786,5 +813,4 @@ public class MissionStepTest {
                 .statusCode(400)
                 .body("code", is("INVALID_REQUEST_BODY"));
     }
-
 }
