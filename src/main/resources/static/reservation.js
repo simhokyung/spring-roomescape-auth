@@ -1,13 +1,18 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const resThemeSelect = document.getElementById('res-theme');
   const resDateInput = document.getElementById('res-date');
   const resTimeSelect = document.getElementById('res-time');
   const resForm = document.getElementById('reservation-form');
-  const myReservationForm = document.getElementById('my-reservation-form');
-  const myReservationNameInput = document.getElementById('my-reservation-name');
   const myReservationList = document.getElementById('my-reservation-list');
   const myReservationMessage = document.getElementById('my-reservation-message');
+  const loginMemberName = document.getElementById('login-member-name');
+  const logoutButton = document.getElementById('logout-button');
+  const reloadButton = document.getElementById('reload-my-reservations');
+
   let myReservations = [];
+
+  const today = new Date().toISOString().split('T')[0];
+  resDateInput.min = today;
 
   document.querySelectorAll('.page-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -16,15 +21,24 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(targetId).classList.add('active');
+
+      if (targetId === 'manage-reservation') {
+        loadMyReservations();
+      }
     });
   });
 
-  // Prevent past dates
-  const today = new Date().toISOString().split('T')[0];
-  resDateInput.min = today;
+  function redirectToLogin() {
+    window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  }
 
   async function getErrorMessage(res) {
-    const fallbackMessage = '요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.';
+    const fallbackMessage = '요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.';
+
+    if (res.status === 401) {
+      redirectToLogin();
+      return '로그인이 필요합니다.';
+    }
 
     try {
       const error = await res.clone().json();
@@ -50,105 +64,101 @@ document.addEventListener('DOMContentLoaded', () => {
     myReservationMessage.style.display = 'none';
   }
 
-  // Get themeId from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const initialThemeId = urlParams.get('themeId');
+  async function loadCurrentMember() {
+    const res = await fetch('/members/me');
+    if (res.status === 401) {
+      redirectToLogin();
+      return null;
+    }
+    if (!res.ok) {
+      throw new Error(await getErrorMessage(res));
+    }
 
-  // Load Themes into Select
-  fetch('/themes')
-    .then(res => res.json())
-    .then(themes => {
-      resThemeSelect.innerHTML = '<option value="">테마를 선택하세요</option>';
-      themes.forEach(t => {
-        const isSelected = initialThemeId && t.id.toString() === initialThemeId ? 'selected' : '';
-        resThemeSelect.innerHTML += `<option value="${t.id}" ${isSelected}>${t.name}</option>`;
-      });
-      // If initialThemeId exists, trigger checkAvailableTimes if date is also selected
-      if(initialThemeId && resDateInput.value) {
-        checkAvailableTimes();
-      }
+    return res.json();
+  }
+
+  async function loadThemes() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialThemeId = urlParams.get('themeId');
+    const res = await fetch('/themes');
+
+    if (!res.ok) {
+      alert(await getErrorMessage(res));
+      return;
+    }
+
+    const themes = await res.json();
+    resThemeSelect.innerHTML = '<option value="">테마를 선택하세요</option>';
+    themes.forEach(theme => {
+      const isSelected = initialThemeId && theme.id.toString() === initialThemeId ? 'selected' : '';
+      resThemeSelect.innerHTML += `<option value="${theme.id}" ${isSelected}>${theme.name}</option>`;
     });
+  }
 
-  function checkAvailableTimes() {
+  async function checkAvailableTimes() {
     const themeId = resThemeSelect.value;
     const date = resDateInput.value;
-    if(!themeId || !date) {
+    if (!themeId || !date) {
       resTimeSelect.innerHTML = '<option value="">날짜와 테마를 먼저 선택하세요</option>';
       resTimeSelect.disabled = true;
       return;
     }
 
-    fetch(`/themes/${themeId}/reservation-times?date=${date}`)
-      .then(res => res.json())
-      .then(times => {
-        resTimeSelect.innerHTML = '<option value="">시간을 선택하세요</option>';
-        let hasAvailable = false;
-        times.forEach(t => {
-          if(t.available) {
-            hasAvailable = true;
-            resTimeSelect.innerHTML += `<option value="${t.id}">${t.startAt}</option>`;
-          }
-        });
-        if(!hasAvailable) {
-          resTimeSelect.innerHTML = '<option value="">해당 날짜에 예약 가능한 시간이 없습니다.</option>';
-          resTimeSelect.disabled = true;
-        } else {
-          resTimeSelect.disabled = false;
-        }
-      });
-  }
-
-  resThemeSelect.addEventListener('change', checkAvailableTimes);
-  resDateInput.addEventListener('change', checkAvailableTimes);
-
-  resForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const payload = {
-      name: document.getElementById('res-name').value,
-      date: resDateInput.value,
-      themeId: resThemeSelect.value,
-      timeId: resTimeSelect.value
-    };
-
-    fetch('/reservations', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    }).then(async res => {
-      if(res.ok) {
-        alert('성공적으로 예약이 완료되었습니다.');
-        checkAvailableTimes();
-        document.getElementById('res-name').value = '';
-        if (myReservationNameInput.value === payload.name) {
-          loadMyReservations(payload.name);
-        }
-      } else {
-        const msg = await getErrorMessage(res);
-        alert(msg);
-      }
-    });
-  });
-
-  async function loadMyReservations(name) {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      showMyReservationMessage('예약자 이름을 입력해주세요.', 'error');
+    const res = await fetch(`/themes/${themeId}/reservation-times?date=${date}`);
+    if (!res.ok) {
+      alert(await getErrorMessage(res));
       return;
     }
 
-    try {
-      const res = await fetch(`/reservations?name=${encodeURIComponent(trimmedName)}`);
-      if (!res.ok) {
-        showMyReservationMessage(await getErrorMessage(res), 'error');
-        return;
-      }
+    const times = await res.json();
+    const availableTimes = times.filter(time => time.available);
 
-      const data = await res.json();
-      myReservations = data.reservations || [];
-      renderMyReservations();
-    } catch (e) {
-      showMyReservationMessage('예약 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
+    if (availableTimes.length === 0) {
+      resTimeSelect.innerHTML = '<option value="">예약 가능한 시간이 없습니다</option>';
+      resTimeSelect.disabled = true;
+      return;
     }
+
+    resTimeSelect.innerHTML = '<option value="">시간을 선택하세요</option>';
+    availableTimes.forEach(time => {
+      resTimeSelect.innerHTML += `<option value="${time.id}">${time.startAt}</option>`;
+    });
+    resTimeSelect.disabled = false;
+  }
+
+  async function createReservation(event) {
+    event.preventDefault();
+
+    const response = await fetch('/reservations', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        date: resDateInput.value,
+        themeId: resThemeSelect.value,
+        timeId: resTimeSelect.value
+      })
+    });
+
+    if (!response.ok) {
+      alert(await getErrorMessage(response));
+      return;
+    }
+
+    alert('예약이 완료되었습니다.');
+    await checkAvailableTimes();
+    await loadMyReservations();
+  }
+
+  async function loadMyReservations() {
+    const res = await fetch('/reservations/mine');
+    if (!res.ok) {
+      showMyReservationMessage(await getErrorMessage(res), 'error');
+      return;
+    }
+
+    const data = await res.json();
+    myReservations = data.reservations || [];
+    renderMyReservations();
   }
 
   function renderMyReservations() {
@@ -195,34 +205,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const date = dateInput.value;
 
     if (!reservation || !date) {
-      showMyReservationMessage('변경할 날짜를 선택해주세요.', 'error');
+      showMyReservationMessage('변경할 날짜를 선택하세요.', 'error');
       return;
     }
 
-    try {
-      const res = await fetch(`/themes/${reservation.theme.id}/reservation-times?date=${date}`);
-      if (!res.ok) {
-        showMyReservationMessage(await getErrorMessage(res), 'error');
-        return;
-      }
-
-      const times = await res.json();
-      const availableTimes = times.filter(time => time.available);
-      timeSelect.innerHTML = '';
-
-      if (availableTimes.length === 0) {
-        timeSelect.innerHTML = '<option value="">예약 가능한 시간이 없습니다</option>';
-        showMyReservationMessage('선택한 날짜에 예약 가능한 시간이 없습니다.', 'info');
-        return;
-      }
-
-      availableTimes.forEach(time => {
-        timeSelect.innerHTML += `<option value="${time.id}">${time.startAt}</option>`;
-      });
-      hideMyReservationMessage();
-    } catch (e) {
-      showMyReservationMessage('예약 가능한 시간을 불러오지 못했습니다.', 'error');
+    const res = await fetch(`/themes/${reservation.theme.id}/reservation-times?date=${date}`);
+    if (!res.ok) {
+      showMyReservationMessage(await getErrorMessage(res), 'error');
+      return;
     }
+
+    const times = await res.json();
+    const availableTimes = times.filter(time => time.available || time.id === reservation.time.id);
+    timeSelect.innerHTML = '';
+
+    if (availableTimes.length === 0) {
+      timeSelect.innerHTML = '<option value="">예약 가능한 시간이 없습니다</option>';
+      showMyReservationMessage('선택한 날짜에 예약 가능한 시간이 없습니다.', 'info');
+      return;
+    }
+
+    availableTimes.forEach(time => {
+      const selected = time.id === reservation.time.id ? 'selected' : '';
+      timeSelect.innerHTML += `<option value="${time.id}" ${selected}>${time.startAt}</option>`;
+    });
+    hideMyReservationMessage();
   }
 
   async function updateMyReservation(id) {
@@ -230,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timeId = document.querySelector(`[data-update-time="${id}"]`).value;
 
     if (!date || !timeId) {
-      showMyReservationMessage('변경할 날짜와 시간을 선택해주세요.', 'error');
+      showMyReservationMessage('변경할 날짜와 시간을 선택하세요.', 'error');
       return;
     }
 
@@ -245,12 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    await loadMyReservations(myReservationNameInput.value);
+    await loadMyReservations();
     showMyReservationMessage('예약이 변경되었습니다.', 'success');
   }
 
   async function cancelMyReservation(id) {
-    if (!confirm('이 예약을 취소하시겠습니까?')) {
+    if (!confirm('예약을 취소하시겠습니까?')) {
       return;
     }
 
@@ -260,25 +267,31 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    await loadMyReservations(myReservationNameInput.value);
+    await loadMyReservations();
     showMyReservationMessage('예약이 취소되었습니다.', 'success');
-    checkAvailableTimes();
+    await checkAvailableTimes();
   }
 
-  myReservationForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    loadMyReservations(myReservationNameInput.value);
-  });
+  async function logout() {
+    await fetch('/logout', {method: 'POST'});
+    window.location.href = '/login.html';
+  }
 
-  myReservationList.addEventListener('change', (e) => {
-    const id = Number(e.target.dataset.updateDate);
+  resThemeSelect.addEventListener('change', checkAvailableTimes);
+  resDateInput.addEventListener('change', checkAvailableTimes);
+  resForm.addEventListener('submit', createReservation);
+  reloadButton.addEventListener('click', loadMyReservations);
+  logoutButton.addEventListener('click', logout);
+
+  myReservationList.addEventListener('change', (event) => {
+    const id = Number(event.target.dataset.updateDate);
     if (id) {
       loadAvailableTimesForReservation(id);
     }
   });
 
-  myReservationList.addEventListener('click', (e) => {
-    const button = e.target.closest('button[data-action]');
+  myReservationList.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action]');
     if (!button) {
       return;
     }
@@ -294,4 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
       cancelMyReservation(id);
     }
   });
+
+  const member = await loadCurrentMember();
+  if (!member) {
+    return;
+  }
+
+  loginMemberName.textContent = `${member.name}님 로그인 중`;
+  await loadThemes();
+  await loadMyReservations();
 });

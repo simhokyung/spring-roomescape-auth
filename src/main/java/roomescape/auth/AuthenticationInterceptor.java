@@ -60,6 +60,14 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        if (HttpMethod.PATCH.matches(method) && uri.startsWith("/reservations/")) {
+            return true;
+        }
+
+        if (HttpMethod.DELETE.matches(method) && uri.startsWith("/reservations/")) {
+            return true;
+        }
+
         return false;
     }
 }

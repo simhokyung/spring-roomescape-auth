@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인</title>
+  <link rel="stylesheet" href="/style.css?v=7">
+</head>
+<body>
+  <div class="container auth-container">
+    <header>
+      <a href="/" class="logo">RoomEscape</a>
+      <nav class="nav-links">
+        <a href="/">홈</a>
+        <a href="/reservation.html">예약하기</a>
+        <a href="/admin.html">관리자 모드</a>
+      </nav>
+    </header>
+
+    <main class="glass-card auth-card">
+      <h1 class="section-title">로그인</h1>
+      <p class="section-subtitle">예약 서비스를 이용하려면 로그인하세요.</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">이메일</label>
+          <input type="email" id="email" class="form-control" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">비밀번호</label>
+          <input type="password" id="password" class="form-control" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary">로그인</button>
+      </form>
+
+      <div id="login-message" class="status-message error" style="display:none;"></div>
+    </main>
+  </div>
+  <script src="/login.js?v=7"></script>
+</body>
+</html>

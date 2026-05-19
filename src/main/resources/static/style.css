@@ -392,6 +392,28 @@ header {
   color: #c62838;
 }
 
+.auth-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+.auth-container {
+  max-width: 560px;
+}
+
+.auth-card {
+  margin-top: 1rem;
+}
+
 .table-wrap {
   overflow-x: auto;
   margin-top: 1.5rem;

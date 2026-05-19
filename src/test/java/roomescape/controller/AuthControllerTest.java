@@ -118,4 +118,34 @@ class AuthControllerTest {
                 .body("name", is("brown"))
                 .body("email", is("brown@example.com"));
     }
+
+    @Test
+    void 로그아웃하면_세션이_만료된다() {
+        Map<String, String> request = Map.of(
+                "email", "brown@example.com",
+                "password", "password"
+        );
+
+        String sessionId = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().post("/login")
+                .then().log().all()
+                .statusCode(200)
+                .extract()
+                .cookie("JSESSIONID");
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .when().post("/logout")
+                .then().log().all()
+                .statusCode(204);
+
+        RestAssured.given().log().all()
+                .cookie("JSESSIONID", sessionId)
+                .when().get("/members/me")
+                .then().log().all()
+                .statusCode(401)
+                .body("code", is("UNAUTHORIZED"));
+    }
 }
