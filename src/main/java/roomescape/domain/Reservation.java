@@ -11,18 +11,25 @@ import java.time.LocalDateTime;
 public class Reservation {
     private static final int MIN_NAME_LENGTH = 2;
     private static final int MAX_NAME_LENGTH = 10;
+    private static final Long DEFAULT_STORE_ID = 1L;
 
     private final Long id;
     private final Member member;
+    private final Long storeId;
     private final LocalDate date;
     private final ReservationTime time;
     private final Theme theme;
 
     public Reservation(Long id, String name, LocalDate date, ReservationTime time, Theme theme) {
-        validateRequired(name, date, time, theme);
+        this(id, name, DEFAULT_STORE_ID, date, time, theme);
+    }
+
+    public Reservation(Long id, String name, Long storeId, LocalDate date, ReservationTime time, Theme theme) {
+        validateRequired(name, storeId, date, time, theme);
 
         this.id = id;
         this.member = new Member(null, name, name + "@reservation.local", "password");
+        this.storeId = storeId;
         this.date = date;
         this.time = time;
         this.theme = theme;
@@ -32,11 +39,20 @@ public class Reservation {
         this(null, name, date, time, theme);
     }
 
+    public Reservation(String name, Long storeId, LocalDate date, ReservationTime time, Theme theme) {
+        this(null, name, storeId, date, time, theme);
+    }
+
     public Reservation(Long id, Member member, LocalDate date, ReservationTime time, Theme theme) {
-        validateRequired(member, date, time, theme);
+        this(id, member, DEFAULT_STORE_ID, date, time, theme);
+    }
+
+    public Reservation(Long id, Member member, Long storeId, LocalDate date, ReservationTime time, Theme theme) {
+        validateRequired(member, storeId, date, time, theme);
 
         this.id = id;
         this.member = member;
+        this.storeId = storeId;
         this.date = date;
         this.time = time;
         this.theme = theme;
@@ -46,20 +62,46 @@ public class Reservation {
         this(null, member, date, time, theme);
     }
 
+    public Reservation(Member member, Long storeId, LocalDate date, ReservationTime time, Theme theme) {
+        this(null, member, storeId, date, time, theme);
+    }
+
     public static Reservation create(String name, LocalDate date, ReservationTime time, Theme theme, LocalDateTime now) {
-        validateRequired(name, date, time, theme);
+        return create(name, DEFAULT_STORE_ID, date, time, theme, now);
+    }
+
+    public static Reservation create(
+            String name,
+            Long storeId,
+            LocalDate date,
+            ReservationTime time,
+            Theme theme,
+            LocalDateTime now
+    ) {
+        validateRequired(name, storeId, date, time, theme);
         validateNow(now);
         validateCreatableDateTime(date, time, now);
 
-        return new Reservation(name, date, time, theme);
+        return new Reservation(name, storeId, date, time, theme);
     }
 
     public static Reservation create(Member member, LocalDate date, ReservationTime time, Theme theme, LocalDateTime now) {
-        validateRequired(member, date, time, theme);
+        return create(member, DEFAULT_STORE_ID, date, time, theme, now);
+    }
+
+    public static Reservation create(
+            Member member,
+            Long storeId,
+            LocalDate date,
+            ReservationTime time,
+            Theme theme,
+            LocalDateTime now
+    ) {
+        validateRequired(member, storeId, date, time, theme);
         validateNow(now);
         validateCreatableDateTime(date, time, now);
 
-        return new Reservation(member, date, time, theme);
+        return new Reservation(member, storeId, date, time, theme);
     }
 
     public Reservation updateDateAndTime(LocalDate date, ReservationTime time, LocalDateTime now) {
@@ -73,7 +115,7 @@ public class Reservation {
 
         validateUpdatableDateTime(date, time, now);
 
-        return new Reservation(id, member, date, time, theme);
+        return new Reservation(id, member, storeId, date, time, theme);
     }
 
     public String getName() {
@@ -82,6 +124,10 @@ public class Reservation {
 
     public Long getMemberId() {
         return member.getId();
+    }
+
+    public Long getStoreId() {
+        return storeId;
     }
 
     public Long getTimeId() {
@@ -97,14 +143,24 @@ public class Reservation {
     }
 
     private static void validateRequired(String name, LocalDate date, ReservationTime time, Theme theme) {
+        validateRequired(name, DEFAULT_STORE_ID, date, time, theme);
+    }
+
+    private static void validateRequired(String name, Long storeId, LocalDate date, ReservationTime time, Theme theme) {
         validateName(name);
+        validateStoreId(storeId);
         validateDate(date);
         validateTime(time);
         validateTheme(theme);
     }
 
     private static void validateRequired(Member member, LocalDate date, ReservationTime time, Theme theme) {
+        validateRequired(member, DEFAULT_STORE_ID, date, time, theme);
+    }
+
+    private static void validateRequired(Member member, Long storeId, LocalDate date, ReservationTime time, Theme theme) {
         validateMember(member);
+        validateStoreId(storeId);
         validateDate(date);
         validateTime(time);
         validateTheme(theme);
@@ -135,6 +191,12 @@ public class Reservation {
     private static void validateMember(Member member) {
         if (member == null) {
             throw new InvalidInputException("예약 회원은 필수입니다.");
+        }
+    }
+
+    private static void validateStoreId(Long storeId) {
+        if (storeId == null) {
+            throw new InvalidInputException("예약 매장은 필수입니다.");
         }
     }
 

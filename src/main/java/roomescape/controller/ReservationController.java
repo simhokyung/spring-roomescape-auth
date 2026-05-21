@@ -60,8 +60,10 @@ public class ReservationController {
 
     @DeleteMapping("/admin/reservations/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        reservationService.deleteById(id);
+    public void delete(
+            @AuthenticationPrincipal LoginMember loginMember,
+            @PathVariable Long id) {
+        reservationService.deleteByManager(loginMember.id(), id);
     }
 
     @DeleteMapping("/reservations/{id}")
@@ -96,6 +98,17 @@ public class ReservationController {
     ) {
         return ReservationResponses.from(
                 reservationService.findMine(loginMember.id(), page, size)
+        );
+    }
+
+    @GetMapping("/admin/reservations")
+    public ReservationResponses readByManager(
+            @AuthenticationPrincipal LoginMember loginMember,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+    ) {
+        return ReservationResponses.from(
+                reservationService.findByManager(loginMember.id(), page, size)
         );
     }
 

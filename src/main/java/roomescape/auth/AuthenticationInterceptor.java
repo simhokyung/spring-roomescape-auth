@@ -59,6 +59,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        if (HttpMethod.GET.matches(method) && uri.equals("/admin/reservations")) {
+            return true;
+        }
+
         if (HttpMethod.POST.matches(method) && uri.equals("/reservations")) {
             return true;
         }
@@ -68,6 +72,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
 
         if (HttpMethod.DELETE.matches(method) && uri.startsWith("/reservations/")) {
+            return true;
+        }
+
+        if (HttpMethod.DELETE.matches(method) && uri.startsWith("/admin/reservations/")) {
             return true;
         }
 

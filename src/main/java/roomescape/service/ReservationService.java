@@ -2,9 +2,11 @@ package roomescape.service;
 
 import org.springframework.stereotype.Service;
 import roomescape.auth.LoginMember;
+import roomescape.dao.ManagerDao;
 import roomescape.dao.ReservationDao;
 import roomescape.dao.ReservationTimeDao;
 import roomescape.dao.ThemeDao;
+import roomescape.domain.Manager;
 import roomescape.domain.Member;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
@@ -26,12 +28,14 @@ public class ReservationService {
     private final ReservationDao reservationDao;
     private final ReservationTimeDao reservationTimeDao;
     private final ThemeDao themeDao;
+    private final ManagerDao managerDao;
     private final Clock clock;
 
-    public ReservationService(ReservationDao reservationDao, ReservationTimeDao reservationTimeDao, ThemeDao themeDao, Clock clock) {
+    public ReservationService(ReservationDao reservationDao, ReservationTimeDao reservationTimeDao, ThemeDao themeDao, ManagerDao managerDao, Clock clock) {
         this.reservationDao = reservationDao;
         this.reservationTimeDao = reservationTimeDao;
         this.themeDao = themeDao;
+        this.managerDao = managerDao;
         this.clock = clock;
     }
 
@@ -49,6 +53,11 @@ public class ReservationService {
         return reservationDao.findByMemberId(memberId, page, size);
     }
 
+    public List<Reservation> findByManager(Long memberId, int page, int size) {
+        Manager manager = findManagerByMemberId(memberId);
+
+        return reservationDao.findByStoreId(manager.getStoreId(), page, size);
+    }
     public void cancelById(long id) {
         Reservation reservation = findReservationById(id);
         validateCancelable(reservation);
@@ -123,6 +132,15 @@ public class ReservationService {
         reservationDao.deleteById(id);
     }
 
+    public void deleteByManager(Long memberId, Long reservationId){
+        Manager manager = findManagerByMemberId(memberId);
+        Reservation reservation = findReservationById(reservationId);
+
+        validateStoreManager(manager,reservation);
+
+        reservationDao.deleteById(reservationId);
+    }
+
     private Reservation updateDateAndTime(Reservation reservation, LocalDate date, Long timeId) {
         ReservationTime newTime = reservationTimeDao.findById(timeId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 예약 시간입니다."));
@@ -167,6 +185,17 @@ public class ReservationService {
 
         if (reservation.isPast(now)) {
             throw new PastReservationException("지난 예약은 취소할 수 없습니다.");
+        }
+    }
+
+    private Manager findManagerByMemberId(Long memberId) {
+        return managerDao.findByMemberId(memberId)
+                .orElseThrow(() -> new ForbiddenException("매장 매니저만 예약을 관리할 수 있습니다."));
+    }
+
+    private void validateStoreManager(Manager manager, Reservation reservation) {
+        if (!reservation.getStoreId().equals(manager.getStoreId())) {
+            throw new ForbiddenException("자기 매장의 예약만 관리할 수 있습니다.");
         }
     }
 }

@@ -21,6 +21,7 @@ import java.util.Optional;
 @Repository
 public class ReservationDao {
 
+
     private static final String RESERVATION_SELECT = """
             SELECT
                 r.id as reservation_id,
@@ -28,6 +29,7 @@ public class ReservationDao {
                 m.name as member_name,
                 m.email as member_email,
                 m.password as member_password,
+                r.store_id,
                 r.date,
                 rt.id as time_id,
                 rt.start_at as time_value,
@@ -53,6 +55,7 @@ public class ReservationDao {
                     resultSet.getString("member_email"),
                     resultSet.getString("member_password")
             ),
+            resultSet.getLong("store_id"),
             LocalDate.parse(resultSet.getString("date")),
             new ReservationTime(
                     resultSet.getLong("time_id"),
@@ -116,17 +119,18 @@ public class ReservationDao {
 
     public Reservation save(Reservation reservation) {
         Long memberId = resolveMemberId(reservation);
-        String sql = "INSERT INTO reservation (member_id, name, date, time_id, theme_id) VALUES(?,?,?,?,?)";
+        String sql = "INSERT INTO reservation (member_id, store_id, name, date, time_id, theme_id) VALUES(?,?,?,?,?,?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(sql, new String[]{"id"});
 
             preparedStatement.setLong(1, memberId);
-            preparedStatement.setString(2, reservation.getName());
-            preparedStatement.setString(3, reservation.getDate().toString());
-            preparedStatement.setLong(4, reservation.getTimeId());
-            preparedStatement.setLong(5, reservation.getThemeId());
+            preparedStatement.setLong(2, reservation.getStoreId());
+            preparedStatement.setString(3, reservation.getName());
+            preparedStatement.setString(4, reservation.getDate().toString());
+            preparedStatement.setLong(5, reservation.getTimeId());
+            preparedStatement.setLong(6, reservation.getThemeId());
 
             return preparedStatement;
         }, keyHolder);
@@ -222,5 +226,17 @@ public class ReservationDao {
         }, keyHolder);
 
         return Objects.requireNonNull(keyHolder.getKey()).longValue();
+    }
+
+    public List<Reservation> findByStoreId(Long storeId, int page, int size) {
+        String sql = RESERVATION_SELECT + """
+              WHERE r.store_id = ?
+              ORDER BY r.date ASC, rt.start_at ASC, th.name ASC, m.name ASC
+              LIMIT ? OFFSET ?
+              """;
+
+        int offset = page * size;
+
+        return jdbcTemplate.query(sql, reservationRowMapper, storeId, size, offset);
     }
 }
