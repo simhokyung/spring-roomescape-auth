@@ -3,7 +3,6 @@ package roomescape.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,9 +16,14 @@ import java.io.IOException;
 public class AuthenticationInterceptor implements HandlerInterceptor {
 
     private final ObjectMapper objectMapper;
+    private final SessionAuthenticationExtractor sessionAuthenticationExtractor;
 
-    public AuthenticationInterceptor(ObjectMapper objectMapper) {
+    public AuthenticationInterceptor(
+            ObjectMapper objectMapper,
+            SessionAuthenticationExtractor sessionAuthenticationExtractor
+    ) {
         this.objectMapper = objectMapper;
+        this.sessionAuthenticationExtractor = sessionAuthenticationExtractor;
     }
 
     @Override
@@ -29,8 +33,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        HttpSession session = request.getSession(false);
-        if (session != null && session.getAttribute(SessionConst.LOGIN_MEMBER) != null) {
+        if (sessionAuthenticationExtractor.extract(request).isPresent()) {
             return true;
         }
 

@@ -1,6 +1,5 @@
 package roomescape.auth;
 
-import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -12,6 +11,12 @@ import roomescape.exception.UnauthorizedException;
 
 @Component
 public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArgumentResolver {
+
+    private final SessionAuthenticationExtractor sessionAuthenticationExtractor;
+
+    public AuthenticationPrincipalArgumentResolver(SessionAuthenticationExtractor sessionAuthenticationExtractor) {
+        this.sessionAuthenticationExtractor = sessionAuthenticationExtractor;
+    }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -31,16 +36,7 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
             throw new UnauthorizedException("로그인이 필요합니다.");
         }
 
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
-
-        Object loginMember = session.getAttribute(SessionConst.LOGIN_MEMBER);
-        if (!(loginMember instanceof LoginMember)) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
-
-        return loginMember;
+        return sessionAuthenticationExtractor.extract(request)
+                .orElseThrow(() -> new UnauthorizedException("로그인이 필요합니다."));
     }
 }
