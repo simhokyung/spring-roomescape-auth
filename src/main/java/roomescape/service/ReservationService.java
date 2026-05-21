@@ -141,6 +141,15 @@ public class ReservationService {
         reservationDao.deleteById(reservationId);
     }
 
+    public Reservation updateByManager(Long memberId, long reservationId, LocalDate date, Long timeId) {
+        Manager manager = findManagerByMemberId(memberId);
+        Reservation reservation = findReservationById(reservationId);
+
+        validateStoreManager(manager, reservation);
+
+        return updateDateAndTime(reservation, date, timeId);
+    }
+
     private Reservation updateDateAndTime(Reservation reservation, LocalDate date, Long timeId) {
         ReservationTime newTime = reservationTimeDao.findById(timeId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 예약 시간입니다."));

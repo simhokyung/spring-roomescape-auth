@@ -112,4 +112,20 @@ public class ReservationController {
         );
     }
 
+    @PatchMapping("/admin/reservations/{id}")
+    public ReservationResponse updateByManager(
+            @AuthenticationPrincipal LoginMember loginMember,
+            @PathVariable long id,
+            @Valid @RequestBody ReservationUpdateRequest request
+    ) {
+        Reservation reservation = reservationService.updateByManager(
+                loginMember.id(),
+                id,
+                request.date(),
+                request.timeId()
+        );
+
+        return ReservationResponse.from(reservation);
+    }
+
 }
